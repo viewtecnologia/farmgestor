@@ -150,15 +150,14 @@ configurar_ftp() {
         echo "Backup da configuração original criado em /etc/vsftpd.conf.bak"
     fi
     
-    # Criar usuário FTP com senha fixa
+    # Criar usuário FTP
     echo -e "${NEGRITO}Criando usuário FTP dedicado...${RESET}"
     if id "$USUARIO_FTP" &>/dev/null; then
-        echo "Usuário $USUARIO_FTP já existe. Atualizando senha..."
-        echo "$USUARIO_FTP:Rai2804@2804" | chpasswd
+        echo "Usuário $USUARIO_FTP já existe."
     else
         useradd -m -s /bin/bash $USUARIO_FTP
-        echo "$USUARIO_FTP:Rai2804@2804" | chpasswd
-        echo "Usuário $USUARIO_FTP criado com senha fixa: Rai2804@2804"
+        echo "$USUARIO_FTP:$SENHA_FTP" | chpasswd
+        echo "Usuário $USUARIO_FTP criado com senha: $SENHA_FTP"
     fi
     
     # Criar diretório para upload
@@ -166,12 +165,9 @@ configurar_ftp() {
     chown -R $USUARIO_FTP:$USUARIO_FTP $DIRETORIO_FTP
     chmod 755 $DIRETORIO_FTP
     
-    # Obter IP da interface principal (mais confiável que IP público)
-    IP_LOCAL=$(ip route get 1 | awk '{print $7}' | head -1)
-    
-    # Configurar VSFTPD com opções mais robustas
+    # Configurar VSFTPD
     cat > /etc/vsftpd.conf << EOF
-# Configuração básica
+# Configuração do servidor FTP para instalação do RuralSys
 listen=YES
 listen_ipv6=NO
 anonymous_enable=NO
@@ -185,42 +181,17 @@ connect_from_port_20=YES
 chroot_local_user=YES
 secure_chroot_dir=/var/run/vsftpd/empty
 pam_service_name=vsftpd
-
-# Configurações de segurança
-session_support=YES
-allow_writeable_chroot=YES
-hide_ids=YES
-
-# Configurações de conexão
+rsa_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+rsa_private_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+ssl_enable=NO
 pasv_enable=YES
 pasv_min_port=21000
 pasv_max_port=21010
-# Comente a linha abaixo se estiver atrás de NAT
-# pasv_address=$IP_LOCAL
-pasv_addr_resolve=NO
-port_enable=YES
-
-# Timeouts (em segundos)
-idle_session_timeout=600
-data_connection_timeout=300
-accept_timeout=60
-connect_timeout=60
-
-# Limites
-max_clients=50
-max_per_ip=10
+allow_writeable_chroot=YES
 local_root=$DIRETORIO_FTP
 EOF
 
-    # Configurar firewall
-    echo -e "${NEGRITO}Configurando firewall...${RESET}"
-    if command -v ufw &>/dev/null && ufw status | grep -q "active"; then
-        ufw allow 21/tcp
-        ufw allow 21000:21010/tcp
-        echo "Regras de firewall adicionadas para FTP"
-    fi
-
-    # Reiniciar o serviço
+    # Reiniciar o serviço FTP
     systemctl restart vsftpd
     systemctl enable vsftpd
     
@@ -228,26 +199,26 @@ EOF
     if systemctl is-active --quiet vsftpd; then
         echo -e "${VERDE}Servidor FTP configurado com sucesso!${RESET}"
         
+        # Obter o IP da máquina
+        IP_ADDR=$(hostname -I | awk '{print $1}')
+        
         echo
         echo -e "${NEGRITO}==================== INSTRUÇÕES FTP =======================${RESET}"
-        echo -e "Dados de conexão:"
-        echo -e "  Endereço: ${VERDE}$IP_LOCAL${RESET} (use IP público se estiver acessando externamente)"
+        echo -e "Use os seguintes dados para conectar ao servidor FTP:"
+        echo -e "  Servidor FTP: ${VERDE}$IP_ADDR${RESET}"
         echo -e "  Porta: ${VERDE}21${RESET}"
         echo -e "  Usuário: ${VERDE}$USUARIO_FTP${RESET}"
-        echo -e "  Senha: ${VERDE}Rai2804@2804${RESET}"
-        echo -e "  Modo: ${VERDE}Passivo (PASV)${RESET}"
-        echo -e "  Portas PASV: ${VERDE}21000-21010${RESET}"
+        echo -e "  Senha: ${VERDE}$SENHA_FTP${RESET}"
+        echo -e "  Diretório: ${VERDE}$DIRETORIO_FTP${RESET}"
         echo
-        echo -e "${AMARELO}Importante:${RESET}"
-        echo -e "1. Se estiver atrás de um roteador/NAT:"
-        echo -e "   - Encaminhe as portas 21 e 21000-21010 para este servidor"
-        echo -e "   - Configure o IP externo no cliente FTP"
-        echo -e "2. No cliente FTP, habilite o modo PASSIVO"
+        echo -e "Instruções para upload:"
+        echo -e "1. Conecte-se ao servidor FTP usando um cliente como FileZilla ou WinSCP"
+        echo -e "2. Faça upload do arquivo $ARQUIVO_ZIP para o diretório $DIRETORIO_FTP"
+        echo -e "3. Após concluir o upload, retorne a este instalador"
         echo -e "${NEGRITO}=============================================================${RESET}"
     else
-        echo -e "${VERMELHO}Falha ao iniciar o servidor FTP.${RESET}"
-        echo -e "Verifique os logs com: ${VERDE}sudo journalctl -u vsftpd.service${RESET}"
-        echo -e "Ou visualize em tempo real com: ${VERDE}sudo tail -f /var/log/vsftpd.log${RESET}"
+        echo -e "${VERMELHO}Falha ao iniciar o servidor FTP. Verifique os logs:${RESET}"
+        echo -e "sudo journalctl -u vsftpd.service"
     fi
     
     echo
@@ -370,79 +341,38 @@ EOF
     read -p "Pressione ENTER para retornar ao menu principal..."
 }
 
+# Extrair e instalar o RuralSys
 extrair_instalar() {
     imprimir_cabecalho
     echo -e "${NEGRITO}Extraindo e instalando o RuralSys...${RESET}"
     echo
     
-    # Verificar múltiplos locais possíveis para o arquivo ZIP
-    ARQUIVO_ENCONTRADO=""
-    LOCAIS_POSSIVEIS=(
-        "$DIRETORIO_FTP/$ARQUIVO_ZIP"
-        "/tmp/$ARQUIVO_ZIP"
-        "/home/$USUARIO/$ARQUIVO_ZIP"
-        "$DIRETORIO_INSTALACAO/$ARQUIVO_ZIP"
-    )
-    
-    for local in "${LOCAIS_POSSIVEIS[@]}"; do
-        if [ -f "$local" ]; then
-            ARQUIVO_ENCONTRADO="$local"
-            break
-        fi
-    done
-    
-    if [ -z "$ARQUIVO_ENCONTRADO" ]; then
-        echo -e "${VERMELHO}Arquivo $ARQUIVO_ZIP não encontrado nos locais esperados.${RESET}"
-        echo -e "Por favor, faça upload do arquivo para um destes locais:"
-        echo -e "1. Via FTP para: ${VERDE}$DIRETORIO_FTP/${RESET}"
-        echo -e "2. Diretamente no servidor em: ${VERDE}/tmp/${RESET}"
-        echo -e "3. Ou no seu diretório home: ${VERDE}/home/$USUARIO/${RESET}"
+    # Verificar se o arquivo foi enviado via FTP
+    if [ ! -f "$DIRETORIO_FTP/$ARQUIVO_ZIP" ]; then
+        echo -e "${VERMELHO}Arquivo $ARQUIVO_ZIP não encontrado no diretório FTP.${RESET}"
+        echo -e "Por favor, faça upload do arquivo via FTP primeiro."
+        echo -e "Diretório esperado: $DIRETORIO_FTP/$ARQUIVO_ZIP"
         echo
-        echo -e "Você pode usar estes comandos para copiar o arquivo:"
-        echo -e "${AZUL}scp ruralsys.zip $USUARIO@$(hostname -I | awk '{print $1}'):/tmp/${RESET}"
-        echo -e "${AZUL}ou${RESET}"
-        echo -e "${AZUL}lftp -e 'put ruralsys.zip -o $DIRETORIO_FTP/ruralsys.zip; quit' ftp://$USUARIO_FTP:Rai2804@2804@$(hostname -I | awk '{print $1}')${RESET}"
-        echo
-        read -p "Pressione ENTER após fazer upload do arquivo ou para retornar ao menu principal..."
+        read -p "Pressione ENTER para retornar ao menu principal..."
         return
     fi
     
-    echo "Arquivo encontrado em: ${VERDE}$ARQUIVO_ENCONTRADO${RESET}"
-    read -p "Deseja continuar com a instalação? (s/n): " RESPOSTA
+    echo "Encontrado arquivo $ARQUIVO_ZIP. Prosseguindo com a instalação."
+    read -p "Deseja continuar? (s/n): " RESPOSTA
     if [[ ! "$RESPOSTA" =~ ^[Ss]$ ]]; then
         echo "Instalação do RuralSys abortada."
         return
     fi
     
-    # Criar diretórios temporários e de instalação
-    mkdir -p $DIRETORIO_INSTALACAO $DIRETORIO_TEMP
+    # Criar diretório de instalação
+    mkdir -p $DIRETORIO_INSTALACAO
     
-    # Copiar arquivo para o diretório temporário
+    # Copiar e extrair o arquivo
     echo -e "${NEGRITO}Copiando e extraindo arquivos...${RESET}"
-    cp "$ARQUIVO_ENCONTRADO" $DIRETORIO_TEMP/
-    
-    # Verificar integridade do arquivo ZIP
-    if ! unzip -t $DIRETORIO_TEMP/$ARQUIVO_ZIP &>/dev/null; then
-        echo -e "${VERMELHO}Erro: O arquivo ZIP está corrompido ou inválido.${RESET}"
-        echo -e "Por favor, faça upload novamente do arquivo."
-        rm -f $DIRETORIO_TEMP/$ARQUIVO_ZIP
-        read -p "Pressione ENTER para retornar ao menu principal..."
-        return
-    fi
-    
-    # Extrair arquivos
+    cp $DIRETORIO_FTP/$ARQUIVO_ZIP $DIRETORIO_TEMP/
     unzip -o $DIRETORIO_TEMP/$ARQUIVO_ZIP -d $DIRETORIO_TEMP/
     
-    # Verificar se a extração foi bem-sucedida
-    if [ ! -d "$DIRETORIO_TEMP/ruralsys" ]; then
-        echo -e "${VERMELHO}Erro: Estrutura de diretórios esperada não encontrada no ZIP.${RESET}"
-        echo -e "Verifique se o arquivo ZIP contém a pasta 'ruralsys' na raiz."
-        read -p "Pressione ENTER para retornar ao menu principal..."
-        return
-    fi
-    
     # Mover para o diretório de instalação
-    echo -e "${NEGRITO}Instalando no diretório destino...${RESET}"
     cp -R $DIRETORIO_TEMP/ruralsys/* $DIRETORIO_INSTALACAO/
     
     # Configurar ambiente virtual Python
@@ -454,12 +384,31 @@ extrair_instalar() {
     # Instalar dependências Python
     echo -e "${NEGRITO}Instalando dependências Python...${RESET}"
     if [ -f "requirements.txt" ]; then
-        pip install --upgrade pip
         pip install -r requirements.txt
     else
-        echo -e "${AMARELO}AVISO: arquivo requirements.txt não encontrado.${RESET}"
-        echo "Instalando dependências padrão..."
         pip install flask flask-login flask-sqlalchemy flask-wtf gunicorn psycopg2-binary pykml lxml pandas requests sqlalchemy
+    fi
+    
+    # Criar arquivo .env com configurações
+    echo -e "${NEGRITO}Configurando variáveis de ambiente...${RESET}"
+    if [ -f "$DIRETORIO_TEMP/db_config.env" ]; then
+        cat $DIRETORIO_TEMP/db_config.env > $DIRETORIO_INSTALACAO/.env
+        echo "SESSION_SECRET=$(openssl rand -hex 24)" >> $DIRETORIO_INSTALACAO/.env
+        echo -e "${VERDE}Arquivo .env criado com configurações do banco de dados.${RESET}"
+    else
+        echo -e "${AMARELO}Arquivo de configuração do banco de dados não encontrado.${RESET}"
+        echo "Gerando configuração padrão..."
+        
+        cat > $DIRETORIO_INSTALACAO/.env << EOF
+DATABASE_URL=postgresql://ruralsys_user:ruralsys_password@localhost:5432/ruralsys
+PGDATABASE=ruralsys
+PGUSER=ruralsys_user
+PGPASSWORD=ruralsys_password
+PGHOST=localhost
+PGPORT=5432
+SESSION_SECRET=$(openssl rand -hex 24)
+EOF
+        echo -e "${AMARELO}ATENÇÃO: Configure manualmente o arquivo .env com as credenciais corretas.${RESET}"
     fi
     
     # Configurar permissões
@@ -471,6 +420,7 @@ extrair_instalar() {
     echo
     read -p "Pressione ENTER para retornar ao menu principal..."
 }
+
 # Configurar serviço systemd
 configurar_servico() {
     imprimir_cabecalho
