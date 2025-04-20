@@ -1,0 +1,20 @@
+Use os seguintes dados para conectar ao servidor FTP:
+  Servidor FTP: 82.25.75.35
+  Porta: 21
+  Usuário: ruralsys_ftp
+  Senha: gBQykrVX5jV8QQ2V
+  Diretório: /home/root/ftp_ruralsys
+
+Instruções para upload:
+1. Conecte-se ao servidor FTP usando um cliente como FileZilla ou WinSCP
+2. Faça upload do arquivo ruralsys.zip para o diretório /home/root/ftp_ruralsys
+3. Após concluir o upload, retorne a este instalador
+
+
+  Nome do banco: ruralsys
+  Usuário: ruralsys_user
+  Senha: 5xeZQ5Guga5sUIpK
+  Host: localhost
+  Porta: 5432
+
+

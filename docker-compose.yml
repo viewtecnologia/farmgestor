@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: sistema-fazenda:latest
+    container_name: fazenda-web
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://fazenda:fazenda@db/fazenda
+      - SESSION_SECRET=segredo_temporario_mudar_em_producao
+      - TZ=America/Sao_Paulo
+      # Definir como "development" para carregar dados de exemplo automaticamente
+      - FLASK_ENV=production
+    volumes:
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - fazenda-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: postgres:14-alpine
+    container_name: fazenda-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      - ./backups:/backups
+    environment:
+      - POSTGRES_USER=fazenda
+      - POSTGRES_PASSWORD=fazenda
+      - POSTGRES_DB=fazenda
+      - TZ=America/Sao_Paulo
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - fazenda-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fazenda"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: ["postgres", "-c", "log_statement=none", "-c", "log_duration=off", "-c", "log_min_duration_statement=500"]
+
+networks:
+  fazenda-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: fazenda-pgdata

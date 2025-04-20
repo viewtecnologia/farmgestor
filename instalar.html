@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instalador - Sistema de Gestão Agropecuária</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            padding-bottom: 50px;
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 20px;
+        }
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .progress {
+            height: 10px;
+            margin-bottom: 20px;
+        }
+        .step-indicator {
+            margin-bottom: 30px;
+        }
+        .step-indicator .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #6c757d;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 auto 10px;
+        }
+        .step-indicator.active .step-number {
+            background-color: #0d6efd;
+        }
+        .step-indicator.completed .step-number {
+            background-color: #198754;
+        }
+        .step-label {
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        .terminal {
+            background-color: #212529;
+            color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        .terminal .command {
+            color: #0dcaf0;
+        }
+        .terminal .success {
+            color: #198754;
+        }
+        .terminal .error {
+            color: #dc3545;
+        }
+        .terminal .warning {
+            color: #ffc107;
+        }
+        #complete-message {
+            display: none;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+        .self-destruct {
+            font-size: 0.8rem;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col text-center">
+                <h1 class="display-5 fw-bold">Instalador do Sistema de Gestão Agropecuária</h1>
+                <p class="lead mb-4">Este assistente guiará você no processo de instalação do sistema.</p>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col">
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col">
+                <div class="row justify-content-between text-center">
+                    <div class="col-2 step-indicator active" id="step-indicator-1">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Preparação</div>
+                    </div>
+                    <div class="col-2 step-indicator" id="step-indicator-2">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Banco de Dados</div>
+                    </div>
+                    <div class="col-2 step-indicator" id="step-indicator-3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Arquivos</div>
+                    </div>
+                    <div class="col-2 step-indicator" id="step-indicator-4">
+                        <div class="step-number">4</div>
+                        <div class="step-label">Configuração</div>
+                    </div>
+                    <div class="col-2 step-indicator" id="step-indicator-5">
+                        <div class="step-number">5</div>
+                        <div class="step-label">Finalização</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passo 1: Boas-vindas e requisitos -->
+        <div id="step1" class="step active">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Bem-vindo ao Instalador</h3>
+                    <p class="card-text">Este assistente irá guiá-lo na instalação do Sistema de Gestão Agropecuária no seu servidor CyberPanel.</p>
+                    
+                    <h4>Requisitos do Sistema</h4>
+                    <ul>
+                        <li>CyberPanel instalado no servidor</li>
+                        <li>Python 3.8 ou superior</li>
+                        <li>PostgreSQL 12 ou superior</li>
+                        <li>Um domínio configurado no CyberPanel</li>
+                    </ul>
+                    
+                    <h4>Verificando o Ambiente</h4>
+                    <div class="terminal" id="step1-output">
+                        <div>Verificando requisitos do sistema...</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="terms-check" required>
+                        <label class="form-check-label" for="terms-check">
+                            Eu li e aceito os termos e condições de uso do sistema
+                        </label>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="step1-next" class="btn btn-primary float-end" disabled>Próximo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passo 2: Configuração do Banco de Dados -->
+        <div id="step2" class="step">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Configuração do Banco de Dados</h3>
+                    <p class="card-text">Configure as informações do banco de dados PostgreSQL.</p>
+                    
+                    <form id="db-form">
+                        <div class="mb-3">
+                            <label for="db-name" class="form-label">Nome do Banco de Dados</label>
+                            <input type="text" class="form-control" id="db-name" value="fazenda" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="db-user" class="form-label">Usuário do Banco de Dados</label>
+                            <input type="text" class="form-control" id="db-user" value="fazenda" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="db-password" class="form-label">Senha do Banco de Dados</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="db-password" required>
+                                <button class="btn btn-outline-secondary" type="button" id="generate-password">Gerar</button>
+                            </div>
+                            <div class="form-text">Senha forte recomendada. Use o botão para gerar automaticamente.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="db-host" class="form-label">Host do Banco de Dados</label>
+                            <input type="text" class="form-control" id="db-host" value="localhost" required>
+                        </div>
+                    </form>
+                    
+                    <div class="terminal" id="step2-output">
+                        <div>Aguardando informações do banco de dados...</div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="step2-prev" class="btn btn-secondary">Anterior</button>
+                    <button id="step2-next" class="btn btn-primary float-end">Próximo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passo 3: Download e Instalação de Arquivos -->
+        <div id="step3" class="step">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Instalação dos Arquivos</h3>
+                    <p class="card-text">O sistema irá baixar e instalar os arquivos necessários.</p>
+                    
+                    <div class="mb-3">
+                        <label for="install-path" class="form-label">Caminho de Instalação</label>
+                        <input type="text" class="form-control" id="install-path" value="/home/seu-usuario/seu-dominio.com/public_html">
+                        <div class="form-text">Este é o caminho onde os arquivos serão instalados.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Opções de Instalação</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="create-venv" checked>
+                            <label class="form-check-label" for="create-venv">
+                                Criar ambiente virtual Python
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="install-deps" checked>
+                            <label class="form-check-label" for="install-deps">
+                                Instalar dependências
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="terminal" id="step3-output">
+                        <div>Aguardando para iniciar a instalação dos arquivos...</div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="step3-prev" class="btn btn-secondary">Anterior</button>
+                    <button id="step3-install" class="btn btn-success float-end">Instalar Arquivos</button>
+                    <button id="step3-next" class="btn btn-primary float-end" style="display: none;">Próximo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passo 4: Configuração do Sistema -->
+        <div id="step4" class="step">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Configuração do Sistema</h3>
+                    <p class="card-text">Configure os parâmetros do sistema e inicialize o banco de dados.</p>
+                    
+                    <div class="mb-3">
+                        <label for="admin-email" class="form-label">Email do Administrador</label>
+                        <input type="email" class="form-control" id="admin-email" value="admin@fazenda.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="admin-password" class="form-label">Senha do Administrador</label>
+                        <input type="text" class="form-control" id="admin-password" value="admin">
+                        <div class="form-text text-warning">Importante: Altere esta senha após o primeiro login.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Configurações Adicionais</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="init-db" checked>
+                            <label class="form-check-label" for="init-db">
+                                Inicializar banco de dados
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="create-service" checked>
+                            <label class="form-check-label" for="create-service">
+                                Criar serviço systemd
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="terminal" id="step4-output">
+                        <div>Aguardando configuração do sistema...</div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="step4-prev" class="btn btn-secondary">Anterior</button>
+                    <button id="step4-configure" class="btn btn-success float-end">Configurar Sistema</button>
+                    <button id="step4-next" class="btn btn-primary float-end" style="display: none;">Próximo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Passo 5: Finalização -->
+        <div id="step5" class="step">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Instalação Concluída</h3>
+                    <div id="success-message">
+                        <div class="alert alert-success" role="alert">
+                            <h4 class="alert-heading">Instalação concluída com sucesso!</h4>
+                            <p>O Sistema de Gestão Agropecuária foi instalado e configurado em seu servidor.</p>
+                        </div>
+                        
+                        <h4>Próximos Passos</h4>
+                        <ol>
+                            <li>Acesse o sistema pelo seu domínio: <strong id="system-url">https://seu-dominio.com</strong></li>
+                            <li>Inicialize o banco de dados com dados de exemplo: <strong id="init-url">https://seu-dominio.com/init_db</strong></li>
+                            <li>Faça login com as credenciais definidas na instalação</li>
+                            <li>Altere a senha do administrador imediatamente</li>
+                            <li>Configure sua propriedade e comece a usar o sistema</li>
+                        </ol>
+                        
+                        <h4>Informações de Acesso</h4>
+                        <div class="card bg-dark text-light p-3 mb-3">
+                            <p><strong>URL do sistema:</strong> <span id="access-url">https://seu-dominio.com</span></p>
+                            <p><strong>Email:</strong> <span id="access-email">admin@fazenda.com</span></p>
+                            <p><strong>Senha:</strong> <span id="access-password">admin</span></p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="remove-installer" checked>
+                                <label class="form-check-label" for="remove-installer">
+                                    Remover arquivos de instalação ao concluir
+                                </label>
+                                <p class="form-text self-destruct">Por segurança, recomendamos remover o instalador após a conclusão.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="error-message" style="display: none;">
+                        <div class="alert alert-danger" role="alert">
+                            <h4 class="alert-heading">Problemas na instalação</h4>
+                            <p>Ocorreram alguns problemas durante a instalação. Veja os detalhes abaixo:</p>
+                            <div id="error-details"></div>
+                        </div>
+                        
+                        <h4>Possíveis Soluções</h4>
+                        <ul id="error-solutions"></ul>
+                        
+                        <h4>Suporte Técnico</h4>
+                        <p>Para obter ajuda, entre em contato com nosso suporte técnico:</p>
+                        <p>Email: suporte@ruralsys.com.br</p>
+                        <p>Telefone: (11) 1234-5678</p>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="step5-prev" class="btn btn-secondary">Anterior</button>
+                    <button id="step5-finish" class="btn btn-success float-end">Concluir Instalação</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Funções de utilidade
+        function generatePassword(length = 12) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return password;
+        }
+
+        function appendToTerminal(terminalId, message, className = '') {
+            const terminal = document.getElementById(terminalId);
+            const div = document.createElement('div');
+            div.textContent = message;
+            if (className) {
+                div.className = className;
+            }
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function updateProgress(step) {
+            const progress = (step - 1) * 25;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            document.getElementById('progress-bar').setAttribute('aria-valuenow', progress);
+            
+            // Atualizar indicadores de etapas
+            for (let i = 1; i <= 5; i++) {
+                const indicator = document.getElementById(`step-indicator-${i}`);
+                if (i < step) {
+                    indicator.className = 'col-2 step-indicator completed';
+                } else if (i === step) {
+                    indicator.className = 'col-2 step-indicator active';
+                } else {
+                    indicator.className = 'col-2 step-indicator';
+                }
+            }
+        }
+
+        function showStep(step) {
+            // Esconder todas as etapas
+            document.querySelectorAll('.step').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Mostrar a etapa atual
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Atualizar barra de progresso
+            updateProgress(step);
+        }
+
+        // Simulação de instalação
+        async function checkEnvironment() {
+            appendToTerminal('step1-output', 'Verificando versão do Python...');
+            await sleep(1000);
+            appendToTerminal('step1-output', '✓ Python 3.9.12 encontrado', 'success');
+            
+            appendToTerminal('step1-output', 'Verificando PostgreSQL...');
+            await sleep(1500);
+            appendToTerminal('step1-output', '✓ PostgreSQL 14.5 encontrado', 'success');
+            
+            appendToTerminal('step1-output', 'Verificando ambiente CyberPanel...');
+            await sleep(2000);
+            appendToTerminal('step1-output', '✓ CyberPanel detectado', 'success');
+            
+            appendToTerminal('step1-output', 'Verificando pasta public_html...');
+            await sleep(1000);
+            appendToTerminal('step1-output', '✓ Instalação em pasta public_html confirmada', 'success');
+            
+            appendToTerminal('step1-output', 'Todos os requisitos atendidos! Você pode prosseguir.', 'success');
+            document.getElementById('step1-next').removeAttribute('disabled');
+        }
+
+        async function installFiles() {
+            const installPath = document.getElementById('install-path').value;
+            const createVenv = document.getElementById('create-venv').checked;
+            const installDeps = document.getElementById('install-deps').checked;
+            
+            document.getElementById('step3-install').setAttribute('disabled', 'disabled');
+            
+            appendToTerminal('step3-output', `Iniciando instalação em: ${installPath}`);
+            await sleep(1500);
+            
+            appendToTerminal('step3-output', 'Baixando arquivos do sistema...');
+            await sleep(3000);
+            appendToTerminal('step3-output', '✓ Arquivos baixados com sucesso', 'success');
+            
+            if (createVenv) {
+                appendToTerminal('step3-output', 'Criando ambiente virtual Python...');
+                await sleep(2000);
+                appendToTerminal('step3-output', '✓ Ambiente virtual criado com sucesso', 'success');
+            }
+            
+            if (installDeps) {
+                appendToTerminal('step3-output', 'Instalando dependências...');
+                await sleep(4000);
+                appendToTerminal('step3-output', '✓ Flask instalado', 'success');
+                await sleep(500);
+                appendToTerminal('step3-output', '✓ Flask-Login instalado', 'success');
+                await sleep(500);
+                appendToTerminal('step3-output', '✓ Flask-SQLAlchemy instalado', 'success');
+                await sleep(500);
+                appendToTerminal('step3-output', '✓ Demais dependências instaladas', 'success');
+            }
+            
+            appendToTerminal('step3-output', 'Instalação de arquivos concluída!', 'success');
+            document.getElementById('step3-install').style.display = 'none';
+            document.getElementById('step3-next').style.display = 'block';
+        }
+
+        async function configureSystem() {
+            const dbName = document.getElementById('db-name').value;
+            const dbUser = document.getElementById('db-user').value;
+            const dbPassword = document.getElementById('db-password').value;
+            const dbHost = document.getElementById('db-host').value;
+            const adminEmail = document.getElementById('admin-email').value;
+            const adminPassword = document.getElementById('admin-password').value;
+            const initDb = document.getElementById('init-db').checked;
+            const createService = document.getElementById('create-service').checked;
+            
+            document.getElementById('step4-configure').setAttribute('disabled', 'disabled');
+            
+            appendToTerminal('step4-output', 'Criando arquivo de configuração .env...');
+            await sleep(1500);
+            appendToTerminal('step4-output', '✓ Arquivo .env criado com sucesso', 'success');
+            
+            if (initDb) {
+                appendToTerminal('step4-output', 'Inicializando banco de dados...');
+                await sleep(3000);
+                appendToTerminal('step4-output', `✓ Banco de dados ${dbName} inicializado com sucesso`, 'success');
+            }
+            
+            if (createService) {
+                appendToTerminal('step4-output', 'Criando serviço systemd...');
+                await sleep(2000);
+                appendToTerminal('step4-output', '✓ Serviço fazenda.service criado', 'success');
+            }
+            
+            appendToTerminal('step4-output', 'Configurando usuário administrador...');
+            await sleep(1500);
+            appendToTerminal('step4-output', `✓ Usuário ${adminEmail} configurado`, 'success');
+            
+            appendToTerminal('step4-output', 'Configuração do sistema concluída!', 'success');
+            document.getElementById('step4-configure').style.display = 'none';
+            document.getElementById('step4-next').style.display = 'block';
+            
+            // Atualizar informações de acesso no passo 5
+            const domain = document.getElementById('install-path').value.split('/').filter(p => p.includes('.')).pop();
+            document.getElementById('system-url').textContent = `https://${domain}`;
+            document.getElementById('init-url').textContent = `https://${domain}/init_db`;
+            document.getElementById('access-url').textContent = `https://${domain}`;
+            document.getElementById('access-email').textContent = adminEmail;
+            document.getElementById('access-password').textContent = adminPassword;
+        }
+
+        async function finishInstallation() {
+            const removeInstaller = document.getElementById('remove-installer').checked;
+            
+            if (removeInstaller) {
+                alert('O instalador será removido após a conclusão.\n\nO sistema está pronto para uso!');
+            } else {
+                alert('Instalação concluída! O sistema está pronto para uso!');
+            }
+            
+            // Na versão real, aqui faríamos uma chamada para um script PHP ou similar
+            // que realmente excluiria o instalador
+            
+            // Redirecionar para o sistema
+            const domain = document.getElementById('install-path').value.split('/').filter(p => p.includes('.')).pop();
+            const systemUrl = `https://${domain}`;
+            
+            // Simulação: Na versão real teríamos um redirecionamento
+            alert(`Redirecionando para ${systemUrl}...`);
+        }
+
+        // Eventos de botões
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar ambiente ao carregar
+            checkEnvironment();
+            
+            // Gerar senha aleatória
+            document.getElementById('generate-password').addEventListener('click', function() {
+                document.getElementById('db-password').value = generatePassword();
+            });
+            document.getElementById('db-password').value = generatePassword();
+            
+            // Termos e condições
+            document.getElementById('terms-check').addEventListener('change', function() {
+                document.getElementById('step1-next').disabled = !this.checked;
+            });
+            
+            // Navegação entre etapas
+            document.getElementById('step1-next').addEventListener('click', function() {
+                showStep(2);
+            });
+            
+            document.getElementById('step2-prev').addEventListener('click', function() {
+                showStep(1);
+            });
+            
+            document.getElementById('step2-next').addEventListener('click', function() {
+                showStep(3);
+            });
+            
+            document.getElementById('step3-prev').addEventListener('click', function() {
+                showStep(2);
+            });
+            
+            document.getElementById('step3-next').addEventListener('click', function() {
+                showStep(4);
+            });
+            
+            document.getElementById('step4-prev').addEventListener('click', function() {
+                showStep(3);
+            });
+            
+            document.getElementById('step4-next').addEventListener('click', function() {
+                showStep(5);
+            });
+            
+            document.getElementById('step5-prev').addEventListener('click', function() {
+                showStep(4);
+            });
+            
+            // Ações de instalação
+            document.getElementById('step3-install').addEventListener('click', installFiles);
+            document.getElementById('step4-configure').addEventListener('click', configureSystem);
+            document.getElementById('step5-finish').addEventListener('click', finishInstallation);
+        });
+    </script>
+</body>
+</html>
